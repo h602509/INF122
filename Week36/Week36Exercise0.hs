@@ -1,4 +1,4 @@
-module Week36.Week36Exercise0 where
+module Week36Exercise0 where
 
 f :: String -> Char -> Bool
 f s c = not (c `elem` s)

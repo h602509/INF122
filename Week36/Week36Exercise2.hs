@@ -1,4 +1,4 @@
-module Week36.Week36Exercise2 where
+module Week36Exercise2 where
 
 -- a)
 
@@ -31,3 +31,9 @@ decomposeSemiRepetitive s = case semiRepetitive s of
             Just (str, Nothing)
             else
                 Just(str, Just (getCenterChar s))
+
+--c)
+
+createSemiRepetitive :: String -> Maybe Char -> String
+createSemiRepetitive s (Just c) = s ++ [c] ++ s
+createSemiRepetitive s Nothing = s ++ s
