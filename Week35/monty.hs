@@ -1,7 +1,4 @@
-
-
-import Probability
-
+import Propability
 
 data Door = A | B | C
    deriving (Eq, Show, Ord)

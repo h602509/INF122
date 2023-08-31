@@ -30,7 +30,7 @@ decomposeSemiRepetitive s = case semiRepetitive s of
         if even (length s) then
             Just (str, Nothing)
             else
-                Just(str, Just (getCenterChar s))
+                Just (str, Just (getCenterChar s))
 
 --c)
 
