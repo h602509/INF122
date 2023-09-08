@@ -48,11 +48,11 @@ order (i.e. in ascending power of 10 going from left to right).
 Example: digits 123 = [3,2,1]
  -}
 digits :: Integer -> [Integer]
-digits x = 
+digits x =
   if x /= 0
-    then 
-      reverse (x `mod` 10 : digits (x `div` 10))
-    else 
+    then
+      x `mod` 10 : digits (x `div` 10)
+    else
       []
 
 
@@ -85,13 +85,19 @@ decomposeHundreds =
 {- Takes a number and groups the digits into sublists of 3 consecutive digits in
 little endian order -}
 groupByThousands :: Integer -> [[Integer]]
-groupByThousands x = 
+groupByThousands x =
+  if x /= 0
+    then
+      digits (x `mod` 1000) : groupByThousands (x `div` 1000)
+    else
+      []
 
 {- Maps any sublist that contains only zeroes to Nothing and any other list xs
 to Just xs -}
 zeroToNothing :: [[Integer]] -> [Maybe [Integer]]
-zeroToNothing = _
-zeroToNothing = map()
+zeroToNothing = map (\xs -> if all (== 0) xs 
+                            then Nothing 
+                            else Just xs)
 
 {- Takes a number from 0 to 999 999 999 and returns the decomposition into the
 numbers used in the corresponding word -}
