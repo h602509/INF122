@@ -2,6 +2,7 @@ module Week37Exercise2 where
 
 import Data.List (unwords)
 import Data.Maybe (fromMaybe)
+import Control.Applicative (Alternative(empty))
 
 {- Takes the numbers used in the words for the integers 0 to 999 999 999 and
 returns their corresponding words -}
@@ -48,6 +49,7 @@ order (i.e. in ascending power of 10 going from left to right).
 Example: digits 123 = [3,2,1]
  -}
 digits :: Integer -> [Integer]
+digits 0 = [0]
 digits x =
   if x /= 0
     then
