@@ -48,15 +48,9 @@ singleton x = [x]
 order (i.e. in ascending power of 10 going from left to right).
 Example: digits 123 = [3,2,1]
  -}
-digits :: Integer -> [Integer]
-digits 0 = [0]
-digits x =
-  if x /= 0
-    then
-      x `mod` 10 : digits (x `div` 10)
-    else
-      []
 
+digits :: Integer -> [Integer]
+digits n = map (\x -> read [x] :: Integer) (reverse (show n))
 
 {- Groups the elements of a list into sublists of n consecutive elements.
 Example: chunksOf 3 [1,2,3,4,5,6,7,8] = [[1,2,3],[4,5,6],[7,8]] -}
@@ -86,13 +80,9 @@ decomposeHundreds =
 
 {- Takes a number and groups the digits into sublists of 3 consecutive digits in
 little endian order -}
+
 groupByThousands :: Integer -> [[Integer]]
-groupByThousands x =
-  if x /= 0
-    then
-      digits (x `mod` 1000) : groupByThousands (x `div` 1000)
-    else
-      []
+groupByThousands n = chunksOf 3 (digits n)
 
 {- Maps any sublist that contains only zeroes to Nothing and any other list xs
 to Just xs -}
