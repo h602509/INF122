@@ -5,8 +5,8 @@ digHelp :: String -> [String]
 digHelp [] = []
 digHelp (x:xs) = [x] : digHelp xs 
 
-z :: [[Integer]] -> [Maybe [Integer]]
-z = map zHelp
+removeZero :: [[Integer]] -> [Maybe [Integer]]
+removeZero = map zHelp
 
 zHelp :: [Integer] -> Maybe [Integer]
 zHelp x = if sum x == 0 
