@@ -28,11 +28,12 @@ lookUp (k:ks) c | fst k == c = snd k
                 | otherwise = lookUp ks c
 
 decode :: Key -> String -> String
-decode k = map (lookUpDecode k)
+decode k = map (lookUp $ invert k)
 
-lookUpDecode :: Key -> Char -> Char
-lookUpDecode [] c = c
-lookUpDecode [k] c | snd k == c = fst k
-                   | otherwise = c
-lookUpDecode (k:ks) c | snd k == c = fst k
-                      | otherwise = lookUpDecode ks c
+invert :: Key -> Key
+invert [] = []
+invert [(x,y)] = [(y,x)]
+invert ((x,y):xs) = (y,x) : invert xs
+
+
+
