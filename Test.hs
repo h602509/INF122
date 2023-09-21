@@ -1,5 +1,6 @@
 import qualified Data.Set as Set
 import Data.Char (ord, chr)
+import System.IO
 
 type Key = [(Char,Char)]
 type FrequencyTable = [(Char,Double)]
@@ -34,6 +35,9 @@ invert :: Key -> Key
 invert [] = []
 invert [(x,y)] = [(y,x)]
 invert ((x,y):xs) = (y,x) : invert xs
+
+loadFrequencyTable :: FilePath -> IO FrequencyTable
+loadFrequencyTable file = undefined
 
 
 
