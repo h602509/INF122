@@ -1,6 +1,7 @@
 import qualified Data.Set as Set
 import Data.Char (ord, chr)
 import System.IO
+import Data.List (sort, group)
 
 type Key = [(Char,Char)]
 type FrequencyTable = [(Char,Double)]
@@ -39,5 +40,8 @@ invert ((x,y):xs) = (y,x) : invert xs
 loadFrequencyTable :: FilePath -> IO FrequencyTable
 loadFrequencyTable file = undefined
 
+count :: String -> FrequencyTable
+count s = map countGroup (group $ sort s)
 
-
+countGroup :: String -> (Char, Double)
+countGroup s = (head s,  fromIntegral $ length s)

@@ -2,6 +2,7 @@ module Oblig0 where
 
 import qualified Data.Set as Set
 import Data.Char
+import Data.List
 
 type Key = [(Char,Char)]
 type FrequencyTable = [(Char,Double)]
@@ -28,7 +29,10 @@ invert [(x,y)] = [(y,x)]
 invert ((x,y):xs) = (y,x) : invert xs
 
 count :: String -> FrequencyTable
-count s = undefined
+count s = map countGroup (group $ sort s)
+
+countGroup :: String -> (Char, Double)
+countGroup s = (head s,  fromIntegral $ length s)
 
 caesar :: Alphabet -> Integer -> Key
 caesar alphabet shift = map (\x -> (x, int2let $ (let2int x + fromInteger shift) `mod` length alphabet)) alphabet
