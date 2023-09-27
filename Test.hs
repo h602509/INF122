@@ -37,11 +37,14 @@ invert [] = []
 invert [(x,y)] = [(y,x)]
 invert ((x,y):xs) = (y,x) : invert xs
 
-loadFrequencyTable :: FilePath -> IO FrequencyTable
-loadFrequencyTable file = undefined
-
 count :: String -> FrequencyTable
 count s = map countGroup (group $ sort s)
 
 countGroup :: String -> (Char, Double)
 countGroup s = (head s,  fromIntegral $ length s)
+
+loadFrequencyTable :: FilePath -> IO FrequencyTable
+loadFrequencyTable filePath = do
+  content <- readFile filePath
+  return (count content)
+

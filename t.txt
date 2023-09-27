@@ -1,0 +1,4 @@
+Dette er en test.
+Dette er linje 2.
+Dette er linje 3.
+Dette er 4. og siste linje.

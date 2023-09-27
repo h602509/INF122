@@ -29,10 +29,12 @@ invert [(x,y)] = [(y,x)]
 invert ((x,y):xs) = (y,x) : invert xs
 
 count :: String -> FrequencyTable
-count s = map countGroup (group $ sort s)
+count s =
+  let n = toInteger $ length s
+  in map (countGroup n) (group $ sort s)
 
-countGroup :: String -> (Char, Double)
-countGroup s = (head s,  fromIntegral $ length s)
+countGroup :: Integer -> String -> (Char, Double)
+countGroup n s = (head s, fromIntegral (length s) / fromIntegral n)
 
 caesar :: Alphabet -> Integer -> Key
 caesar alphabet shift = map (\x -> (x, int2let $ (let2int x + fromInteger shift) `mod` length alphabet)) alphabet
@@ -40,13 +42,15 @@ caesar alphabet shift = map (\x -> (x, int2let $ (let2int x + fromInteger shift)
 let2int :: Char -> Int
 let2int c = ord c - ord 'a'
 
-int2let :: Int -> Char 
+int2let :: Int -> Char
 int2let n = chr (ord 'a' + n)
 
 loadFrequencyTable :: FilePath -> IO FrequencyTable
-loadFrequencyTable file = undefined
+loadFrequencyTable filePath = do
+  content <- readFile filePath
+  return (count content)
 
-initialGuess :: FrequencyTable -> FrequencyTable-> Key
+initialGuess :: FrequencyTable -> FrequencyTable -> Key
 initialGuess model observation = undefined
 
 chiSquared :: FrequencyTable -> FrequencyTable -> Double
