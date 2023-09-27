@@ -3,6 +3,8 @@ module Oblig0 where
 import qualified Data.Set as Set
 import Data.Char
 import Data.List
+import Data.Ord
+import Data.Function (on)
 
 type Key = [(Char,Char)]
 type FrequencyTable = [(Char,Double)]
@@ -51,7 +53,14 @@ loadFrequencyTable filePath = do
   return (count content)
 
 initialGuess :: FrequencyTable -> FrequencyTable -> Key
-initialGuess model observation = undefined
+initialGuess model observation = do
+  let 
+    sortedModel = sortBy (compare `on` snd) model
+    sortedObs = sortBy (compare `on` snd) observation
+    in zipWith matchChars sortedModel sortedObs
+
+matchChars :: (Char, Double) -> (Char, Double) -> (Char, Char)
+matchChars x y = (fst x, fst y)  
 
 chiSquared :: FrequencyTable -> FrequencyTable -> Double
 chiSquared model observation = undefined
