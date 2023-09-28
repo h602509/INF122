@@ -63,7 +63,16 @@ matchChars :: (Char, Double) -> (Char, Double) -> (Char, Char)
 matchChars x y = (fst x, fst y)  
 
 chiSquared :: FrequencyTable -> FrequencyTable -> Double
-chiSquared model observation = undefined
+chiSquared model observation = do
+  let 
+    sortedModel = sortBy (compare `on` snd) model
+    sortedObs = sortBy (compare `on` snd) observation
+    in sum $ zipWith chiSquared' sortedModel sortedObs
+
+chiSquared' :: (Char, Double) -> (Char, Double) -> Double
+chiSquared' o e = 
+  let x = ((snd o - snd e)^2) / snd e
+  in if x == 0 then 1/10000 else x
 
 neighbourKeys :: Key -> [Key]
 neighbourKeys key = undefined
