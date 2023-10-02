@@ -1,16 +1,18 @@
 module Oblig0 where
 
-import qualified Data.Set as Set
-import Data.Char
-import Data.List
-import Data.Ord
+import Data.List (group, sort)
+import Data.Char (ord)
+import GHC.Char (chr)
+import GHC.OldList (sortBy)
 import Data.Function (on)
+import Data.Set (Set)
+import qualified Data.Map as Map
+
 
 type Key = [(Char,Char)]
 type FrequencyTable = [(Char,Double)]
 type Alphabet = String
-type Dictionary = Set.Set String
-
+type Dictionary = Set String
 
 encode :: Key -> String -> String
 encode k = map (lookUp k)
@@ -54,25 +56,25 @@ loadFrequencyTable filePath = do
 
 initialGuess :: FrequencyTable -> FrequencyTable -> Key
 initialGuess model observation = do
-  let 
+  let
     sortedModel = sortBy (compare `on` snd) model
     sortedObs = sortBy (compare `on` snd) observation
     in zipWith matchChars sortedModel sortedObs
 
 matchChars :: (Char, Double) -> (Char, Double) -> (Char, Char)
-matchChars x y = (fst x, fst y)  
+matchChars x y = (fst x, fst y)
 
 chiSquared :: FrequencyTable -> FrequencyTable -> Double
-chiSquared model observation = do
-  let 
-    sortedModel = sortBy (compare `on` snd) model
-    sortedObs = sortBy (compare `on` snd) observation
-    in sum $ zipWith chiSquared' sortedModel sortedObs
+chiSquared mod obs = let m = Map.fromList mod
+                         o = Map.fromList obs
+                         mo = Map.keys $ Map.union o m
+                     in sum $ map (chiHelp m o) mo
 
-chiSquared' :: (Char, Double) -> (Char, Double) -> Double
-chiSquared' o e = 
-  let x = ((snd o - snd e)^2) / snd e
-  in if x == 0 then 1/10000 else x
+chiHelp :: Map.Map Char Double -> Map.Map Char Double -> Char -> Double 
+chiHelp mod obs c = chisqr (Map.findWithDefault (1/10000) c mod) (Map.findWithDefault 0 c obs)
+
+chisqr :: Double -> Double -> Double
+chisqr mod obs = ((obs-mod)^2)/mod
 
 neighbourKeys :: Key -> [Key]
 neighbourKeys key = undefined
@@ -93,3 +95,12 @@ countValidWords dict = undefined
 greedyDict :: Dictionary -> String -> Key -> Key
 greedyDict dict cipherText initKey = undefined
 
+-- fault in this test
+-- {
+-- ghci> decode guessedKey2 (encode key "home") == "home"
+-- False
+-- }
+-- 
+-- output of this should be "home"
+-- ghci> decode guessedKey2 (encode key "home")
+-- "git "
