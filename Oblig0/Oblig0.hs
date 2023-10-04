@@ -1,6 +1,6 @@
 module Oblig0 where
 
-import Data.List (group, sort)
+import Data.List (group, sort, delete)
 import Data.Char (ord)
 import GHC.Char (chr)
 import GHC.OldList (sortBy)
@@ -70,7 +70,7 @@ chiSquared mod obs = let m = Map.fromList mod
                          mo = Map.keys $ Map.union o m
                      in sum $ map (chiHelp m o) mo
 
-chiHelp :: Map.Map Char Double -> Map.Map Char Double -> Char -> Double 
+chiHelp :: Map.Map Char Double -> Map.Map Char Double -> Char -> Double
 chiHelp mod obs c = chisqr (Map.findWithDefault (1/10000) c mod) (Map.findWithDefault 0 c obs)
 
 chisqr :: Double -> Double -> Double
@@ -79,9 +79,15 @@ chisqr mod obs = ((obs-mod)^2)/mod
 neighbourKeys :: Key -> [Key]
 neighbourKeys key = undefined
 
-swapEntries :: (Char,Char) -> (Char, Char) -> Key -> Key
-swapEntries (c1, e1) (c2, e2) key = undefined
+swapEntries :: (Eq a, Eq b) => (a, b) -> (a, b) -> [(a, b)] -> [(a, b)]
+swapEntries (c1, e1) (c2, e2) key = let a1 = (c1,e1)
+                                        a2 = (c2,e2)
+                                        b1 = (c2,e1)
+                                        b2 = (c1,e2)
+                                    in swap a1 b1 (swap a2 b2 key)
 
+swap :: Eq a => a -> a -> [a] -> [a]
+swap a b = map (\x -> if x == a then b else x)
 
 greedy :: FrequencyTable -> String -> Key -> Key
 greedy model cipherText initKey = undefined
