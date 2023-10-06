@@ -1,13 +1,13 @@
 module Oblig0 where
 
-import Data.List (group, sort, delete)
+import Data.List (group, sort, minimumBy, maximumBy, sortBy)
 import Data.Char (ord)
-import GHC.Char (chr)
-import GHC.OldList (sortBy)
 import Data.Function (on)
 import Data.Set (Set)
 import qualified Data.Map as Map
-
+import qualified Data.Set as Set
+import Data.IntMap (keys)
+import Data.Ord (comparing)
 
 type Key = [(Char,Char)]
 type FrequencyTable = [(Char,Double)]
@@ -41,13 +41,9 @@ countGroup :: Integer -> String -> (Char, Double)
 countGroup n s = (head s, fromIntegral (length s) / fromIntegral n)
 
 caesar :: Alphabet -> Integer -> Key
-caesar alphabet shift = map (\x -> (x, int2let $ (let2int x + fromInteger shift) `mod` length alphabet)) alphabet
-
-let2int :: Char -> Int
-let2int c = ord c - ord 'a'
-
-int2let :: Int -> Char
-int2let n = chr (ord 'a' + n)
+caesar alphabet shift = let shift' = mod (fromIntegral shift ) (length alphabet)
+                            encrypted = drop shift' alphabet ++ take shift' alphabet
+  in zip alphabet encrypted
 
 loadFrequencyTable :: FilePath -> IO FrequencyTable
 loadFrequencyTable filePath = do
@@ -57,8 +53,8 @@ loadFrequencyTable filePath = do
 initialGuess :: FrequencyTable -> FrequencyTable -> Key
 initialGuess model observation = do
   let
-    sortedModel = sortBy (compare `on` snd) model
-    sortedObs = sortBy (compare `on` snd) observation
+    sortedModel = sortBy (flip compare `on` snd) model
+    sortedObs = sortBy (flip compare `on` snd) observation
     in zipWith matchChars sortedModel sortedObs
 
 matchChars :: (Char, Double) -> (Char, Double) -> (Char, Char)
@@ -76,37 +72,81 @@ chiHelp mod obs c = chisqr (Map.findWithDefault (1/10000) c mod) (Map.findWithDe
 chisqr :: Double -> Double -> Double
 chisqr mod obs = ((obs-mod)^2)/mod
 
+--Sammarbeid med Stein Olav Løset Frey
+--neighbourKeys xs = [swapEntries x y xs | x <- xs ,y <- xs, x > y]
 neighbourKeys :: Key -> [Key]
-neighbourKeys key = undefined
+neighbourKeys xs = [swapEntries x y xs | (x,n) <- zip xs [1..], y <- drop n xs]
 
-swapEntries :: (Eq a, Eq b) => (a, b) -> (a, b) -> [(a, b)] -> [(a, b)]
-swapEntries (c1, e1) (c2, e2) key = let a1 = (c1,e1)
-                                        a2 = (c2,e2)
-                                        b1 = (c2,e1)
-                                        b2 = (c1,e2)
-                                    in swap a1 b1 (swap a2 b2 key)
+swapEntries :: (Eq a) => (a, b) -> (a, b) -> [(a, b)] -> [(a, b)]
+swapEntries (c1, e1) (c2, e2) key = let
+  a1 = (c1,e1)
+  a2 = (c2,e2)
+  b1 = (c2,e1)
+  b2 = (c1,e2)
+  in map (\x -> if fst x == fst a1 then b2 else if fst x == fst a2 then b1 else x) key
 
-swap :: Eq a => a -> a -> [a] -> [a]
-swap a b = map (\x -> if x == a then b else x)
-
+-- I sammarbeid med Espen Grepstad, Får timeout på test 3.1
 greedy :: FrequencyTable -> String -> Key -> Key
-greedy model cipherText initKey = undefined
+greedy model cipherText initKey =
+    let
+        currentChiSquared = chiSquared model (count (decode initKey cipherText))
+        bestNeighbor = minimumBy (comparing (\key -> chiSquared model (count (decode key cipherText)))) (neighbourKeys initKey)
+    in
+        if chiSquared model (count (decode bestNeighbor cipherText)) < currentChiSquared
+        then greedy model cipherText bestNeighbor
+        else initKey
+
+-- Sammarbeid med Stein Olav Løset Frey, denne feiler på test 3.2
+{-}
+greedy :: FrequencyTable -> String -> Key -> Key
+greedy model cipherText initKey = minimumBy (comparing (\key -> chiSquared model (count (decode key cipherText)))) (neighbourKeys initKey)
+-}
+
+{-
+-- Laget selv, feiler også på 3.2, man har og for høy verdi på lokal test
+greedy :: FrequencyTable -> String -> Key -> Key
+greedy model cipherText initKey = let
+  keys = neighbourKeys initKey
+  frqTbl = count cipherText
+  keyChiList = greedy' keys model frqTbl
+  in snd $ minimumBy compareDoubles keyChiList 
+
+greedy' :: [Key] -> FrequencyTable -> FrequencyTable -> [(Double,Key)]
+greedy' [] _ _ = []
+greedy' [k] mod obs = [(chiSquared mod obs, k)]
+greedy' (k:ks) mod obs = (chiSquared mod obs, k) : greedy' ks mod obs
+
+compareDoubles :: (Double,Key) -> (Double,Key) -> Ordering
+compareDoubles (x,_) (y,_) = compare x y
+-}
 
 loadDictionary :: FilePath -> IO Dictionary
-loadDictionary fil = undefined
+loadDictionary filePath = do
+  dict <- readFile filePath
+  let wordList = words dict
+  return (Set.fromList wordList)
 
 countValidWords :: Dictionary -> String -> Integer
-countValidWords dict = undefined
+countValidWords d s = let wordList = words s
+                          isMember ss s = if Set.member s ss then 1 else 0
+  in sum $ map (isMember d) wordList
 
+{-
+-- Sammarbeid med Stein Olav Løset Frey
 greedyDict :: Dictionary -> String -> Key -> Key
-greedyDict dict cipherText initKey = undefined
+greedyDict dict cipherText initKey = do
+  let keys = neighbourKeys initKey
+    in maximumBy (comparing (\key -> countValidWords dict (decode key cipherText))) keys
+-}
 
--- fault in this test
--- {
--- ghci> decode guessedKey2 (encode key "home") == "home"
--- False
--- }
--- 
--- output of this should be "home"
--- ghci> decode guessedKey2 (encode key "home")
--- "git "
+-- I sammarbeid med Espen Grepstad, Får timeout på test 3.1
+greedyDict :: Dictionary -> String -> Key -> Key
+greedyDict dict cipherText initKey =
+    let
+        validWords = countValidWords dict (decode initKey cipherText)
+        bestKey = maximumBy (comparing (\key -> countValidWords dict (decode key cipherText))) (neighbourKeys initKey)
+        bestWords = countValidWords dict (decode bestKey cipherText)
+    in
+        if  bestWords > validWords
+        then greedyDict dict cipherText bestKey
+        else initKey
