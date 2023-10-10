@@ -131,6 +131,25 @@ countValidWords d s = let wordList = words s
                           isMember ss s = if Set.member s ss then 1 else 0
   in sum $ map (isMember d) wordList
 
+-- I sammarbeid med Stein Olav Løset Frey
+greedyDict :: Dictionary -> String -> Key -> Key
+greedyDict dict cipherText initKey =
+    let
+        decodeInitKey = decode initKey cipherText
+        validWords = countValidWords dict decodeInitKey
+
+        findBestKey :: Key -> Key -> Key
+        findBestKey currentBestKey nextKey
+            | countValidWords dict (decode nextKey cipherText) > countValidWords dict (decode currentBestKey cipherText) = nextKey
+            | otherwise = currentBestKey
+
+        bestKey = foldl findBestKey initKey (neighbourKeys initKey)
+        bestWords = countValidWords dict (decode bestKey cipherText)
+    in
+        if bestWords > validWords
+        then greedyDict dict cipherText bestKey
+        else initKey
+
 {-
 -- Sammarbeid med Stein Olav Løset Frey
 greedyDict :: Dictionary -> String -> Key -> Key
@@ -139,6 +158,7 @@ greedyDict dict cipherText initKey = do
     in maximumBy (comparing (\key -> countValidWords dict (decode key cipherText))) keys
 -}
 
+{-
 -- I sammarbeid med Espen Grepstad, Får timeout på test 3.1
 greedyDict :: Dictionary -> String -> Key -> Key
 greedyDict dict cipherText initKey =
@@ -150,3 +170,4 @@ greedyDict dict cipherText initKey =
         if  bestWords > validWords
         then greedyDict dict cipherText bestKey
         else initKey
+-}
