@@ -18,6 +18,8 @@ data Statement a = Print (StringExpression a)
                  | StrAssign a (StringExpression a)
     deriving (Eq,Show)
 
+{- Evaluate and execute ASTs -}
+
 evalString :: (a -> String) -> StringExpression a -> IO String
 evalString f (SVar v) = pure (f v)
 evalString f (Literal s) = pure s
@@ -25,7 +27,7 @@ evalString f (Concat lhs rhs) = do
     lval <- evalString f lhs
     hval <- evalString f rhs
     pure (lval ++ hval)
-evalString f UserString = undefined
+evalString f UserString = getLine
 
 evalBool :: (a -> String) -> BoolExpression a -> IO Bool
 evalBool f T = pure True
