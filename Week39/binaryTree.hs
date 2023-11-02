@@ -28,3 +28,29 @@ sumTree (Branch lefts x rigths) = x + sumTree lefts + sumTree rigths
 toList :: BinTree a -> [a]
 toList Empty = []
 toList (Branch lefts x rigths) = toList lefts ++ [x] ++ toList rigths
+
+-- week32
+
+instance Foldable BinTree where
+    
+    foldr m z Empty = z
+    foldr m z (Branch l x r) = 
+        let fr = foldr m z l
+            fx = m x fr
+            in foldr m fx l
+
+
+{-
+
+            x
+           / \
+         l     r
+
+m :: a -> b -> b
+x :: a
+z :: b
+
+fr :: b
+m x fr :: b
+
+-}

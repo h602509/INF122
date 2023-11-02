@@ -9,3 +9,5 @@ factorialFold n = foldr (*) 1 [1..n]
 headFold :: [a] -> Maybe a
 headFold = foldr (\a b -> Just a) Nothing
 
+
+

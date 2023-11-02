@@ -12,6 +12,8 @@ import Control.Applicative
 import Control.Monad.State
 import System.IO
 import System.Exit
+import Data.Time.Format.ISO8601 (yearFormat)
+
 
 -- | A data type to represent expressions that can be evaluated to a number.
 -- This type is parametric over both the number type and the cell reference type.
@@ -55,8 +57,9 @@ data Sheet number cell = Sheet
     -- ^ The content of the sheet as a mapping from cell references to expressions
   }
 
-
-
+-- hjelpefunksjon for å hente ut content av en celle
+cellLookup :: Ord cell => Sheet number cell -> cell -> Maybe (Expression number cell)
+cellLookup sheet cRef = Map.lookup cRef (content sheet)
 
 -- | CellRef is the standard way to refer to a cell in the spreadsheet.
 data CellRef = Cell { column :: Char, row :: Integer }
@@ -80,7 +83,7 @@ instance Ranged CellRef where
 sheet1 :: Sheet Double CellRef
 sheet1 =
   Sheet
-    { name = "Sheet1", -- ^ Name of the sheet
+    { name = "Sheet1", -- Name of the sheet
       dimension = Dimension "ABC" [1..3],
       content = 
         Map.fromList
@@ -99,16 +102,71 @@ sheet1 =
     }
 
 sheet2 :: Sheet Double CellRef
-sheet2 = undefined
+sheet2 =
+  Sheet
+    { name = "Sheet2",
+      dimension = Dimension "ABC" [1..2],
+      content =
+        Map.fromList
+          [ ((Cell 'A' 1), Constant 12),
+            ((Cell 'B' 1), Mul (Constant 4) (Ref (Cell 'A' 2))),
+            ((Cell 'C' 1), Add (Ref (Cell 'A' 1)) (Ref (Cell 'C' 2))),
+            ((Cell 'A' 2), Constant 2),
+            ((Cell 'B' 2), Constant 4),
+            ((Cell 'C' 2), Sum (Box (Cell 'A' 1) (Cell 'C' 1)))
+          ]
+    }
 
--- | Evaluate an expression within the context of a sheet.
+-- Evaluate an expression within the context of a sheet.
 -- Return Nothing if the expression cannot be evaluated.
 evaluate :: (Num number, Ranged cell)
          => Sheet number cell
          -> Expression number cell
          -> Maybe number
-evaluate sheet expr = undefined
 
+-- Hvis uttrykket er en referanse til en annen cell vil vi evaluere den cellen.
+evaluate sheet (Ref c1) = evaluateMaybe refCell
+  where 
+    refCell = Map.lookup c1 (content sheet)
+
+    --hjelpefunksjon for å håndtere Maybe
+    evaluateMaybe Nothing = Nothing
+    evaluateMaybe (Just c2) = evaluate sheet c2
+
+-- Hvis uttrykket er et konstant tall skal vi returnere det tallet. 
+evaluate sheet (Constant n) = Just n 
+
+-- Hvis uttrykket er en sum av celler skal vi rekursivt evaluere alle cellene og så summere resultatene.
+evaluate sheet (Sum ran) = sumRange sheet list
+  where
+    list = map (cellLookup sheet) $ Set.toList $ cellRange (dimension sheet) ran
+    
+    -- Bruker do notasjonen til Maybe Monade for å håndtere Maybe
+    sumRange sheet (x:xs) = do
+      expr <- x 
+      value <- evaluate sheet expr
+      valueSum <- sumRange sheet xs
+      return (value + valueSum)
+    sumRange sheet [] = Just 0
+
+-- Hvis uttrykket er addisjon av to uttrykk skal vi rekursivt evaluere enhvert uttrykk og så addere resultatene.
+evaluate sheet (Add x y) = do
+  x' <- evaluate sheet x
+  y' <- evaluate sheet y
+  return (x' + y') 
+
+-- Hvis uttrykket er multiplikasjon av to uttrykk skal vi rekursivt evaluere enhvert uttrykk og så multiplisere resultatene.
+evaluate sheet (Mul x y) = do
+  x' <- evaluate sheet x
+  y' <- evaluate sheet y
+  return (x' * y') 
+
+hasCycle :: (Ranged cell) => Sheet number cell -> cell -> [CellRef] -> Bool
+hasCycle sheet ran visited = let
+  cellRefs = Set.toList $ cellRange (dimension sheet) ran
+  in any hasCycle' cellRefs 
+  where 
+    hasCycle' cellRef =  
 
 -- The type of parsers
 newtype Parser a = Parser {runParser :: String -> Maybe (String, a)}
