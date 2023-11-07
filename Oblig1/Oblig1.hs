@@ -13,6 +13,7 @@ import Control.Monad.State
 import System.IO
 import System.Exit
 import Data.Time.Format.ISO8601 (yearFormat)
+import Data.Maybe (fromMaybe)
 
 
 -- | A data type to represent expressions that can be evaluated to a number.
@@ -125,7 +126,7 @@ evaluate :: (Num number, Ranged cell)
          -> Maybe number
 
 -- Hvis uttrykket er en referanse til en annen cell vil vi evaluere den cellen.
-evaluate sheet (Ref c1) = evaluateMaybe refCell
+evaluate sheet (Ref c1) = if hasCycle sheet c1 [] then Nothing else evaluateMaybe refCell
   where 
     refCell = Map.lookup c1 (content sheet)
 
@@ -137,10 +138,13 @@ evaluate sheet (Ref c1) = evaluateMaybe refCell
 evaluate sheet (Constant n) = Just n 
 
 -- Hvis uttrykket er en sum av celler skal vi rekursivt evaluere alle cellene og så summere resultatene.
-evaluate sheet (Sum ran) = sumRange sheet list
+evaluate sheet (Sum ran) = if cycle then Nothing else sumRange sheet list
   where
-    list = map (cellLookup sheet) $ Set.toList $ cellRange (dimension sheet) ran
-    
+    refs = Set.toList $ cellRange (dimension sheet) ran
+    list = map (cellLookup sheet) refs
+    cycle = any hasCycle' refs
+    hasCycle' cell = hasCycle sheet cell []
+
     -- Bruker do notasjonen til Maybe Monade for å håndtere Maybe
     sumRange sheet (x:xs) = do
       expr <- x 
@@ -161,12 +165,25 @@ evaluate sheet (Mul x y) = do
   y' <- evaluate sheet y
   return (x' * y') 
 
-hasCycle :: (Ranged cell) => Sheet number cell -> cell -> [CellRef] -> Bool
-hasCycle sheet ran visited = let
-  cellRefs = Set.toList $ cellRange (dimension sheet) ran
-  in any hasCycle' cellRefs 
+hasCycle :: (Ranged cell) => Sheet number cell -> cell -> [cell] -> Bool
+hasCycle sheet cell visited = if cycleFound 
+  then True 
+  else fromMaybe False $ do
+    expr <- cellLookup sheet cell  
+    let refs = Set.toList(getExprRefs expr (dimension sheet))
+    return (any hasCycle' refs)
+
   where 
-    hasCycle' cellRef =  
+    hasCycle' cell' = hasCycle sheet cell' (cell : visited)
+    cycleFound = elem cell visited
+
+-- hjelpefunksjon for å hente ut alle referanser i et expression
+getExprRefs :: (Ord cell, Ranged cell) => Expression number cell -> Dimension cell -> Set cell
+getExprRefs (Ref cell) dim = Set.singleton cell 
+getExprRefs (Constant number) dim = Set.empty
+getExprRefs (Sum ran) dim = cellRange dim ran
+getExprRefs (Add l r) dim = Set.union (getExprRefs l dim) (getExprRefs r dim)
+getExprRefs (Mul l r) dim = Set.union (getExprRefs l dim) (getExprRefs r dim)
 
 -- The type of parsers
 newtype Parser a = Parser {runParser :: String -> Maybe (String, a)}
@@ -209,7 +226,9 @@ pChar = Parser pHead where
 
 
 exactChar :: Char -> Parser ()
-exactChar = undefined
+exactChar char = do
+  c <- pChar
+  guard (c == char)
 
 -- | Eat a single space
 pSpace :: Parser ()
@@ -233,7 +252,11 @@ keyword (k : ks) = do
 
    
 between :: Parser a -> Parser b -> Parser c -> Parser c
-between pOpen pClose pContent = undefined
+between pOpen pClose pContent = do
+    pOpen
+    x <- pContent
+    pClose
+    return x
 
 -- | Parse parenthesis
 inParenthesis :: Parser a -> Parser a
@@ -288,11 +311,17 @@ pConstant = Constant <$> pRead
 
 -- | Parse a cell name
 pCell :: Parser CellRef
-pCell = undefined
+pCell = do
+  c <- pColName
+  n <- pRowNumber
+  return (Cell c n)
 
 -- | Parse a cell reference
 pRef :: Parser (Expression number CellRef)
-pRef = undefined
+pRef = do
+  c <- exactChar '!'
+  r <- pCell
+  return (Ref r)
 
 
 -- | Parse a multiplication expression

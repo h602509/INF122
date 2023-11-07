@@ -6,4 +6,4 @@ isFiveMultiples = notElem False . map (\x -> (mod x 5) == 0)
 
 
 factorial :: Integer -> Integer
-factorial = foldr (*) 1 . enumFromTo 1
+factorial = foldr (*) 1 . enumFromTo 1 
