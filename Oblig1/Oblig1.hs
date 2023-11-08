@@ -14,6 +14,7 @@ import System.IO
 import System.Exit
 import Data.Time.Format.ISO8601 (yearFormat)
 import Data.Maybe (fromMaybe)
+import Distribution.Simple.Program.Ar (createArLibArchive)
 
 
 -- | A data type to represent expressions that can be evaluated to a number.
@@ -296,7 +297,7 @@ pRead =
 -- | Parse cell expressions
 pExpression :: (Read number)
             => Parser (Expression number CellRef)
-pExpression = undefined
+pExpression = pAdd <|> pTerm
 
 -- | Parse an atomic term
 pTerm :: Read number => Parser (Expression number CellRef)
@@ -326,16 +327,25 @@ pRef = do
 
 -- | Parse a multiplication expression
 pMul :: Read number => Parser (Expression number CellRef)
-pMul = undefined
+pMul = pOperator "*" Mul pTerm
+  
 
 -- | Parse an addition expression
 pAdd :: Read number => Parser (Expression number CellRef)
-pAdd = undefined
+pAdd = pOperator "+" Add (pMul <|> pTerm)
 
 
 -- | Parse a sum of cell refences like SUM(A1:C3)
 pSum :: Parser (Expression number CellRef)
-pSum = undefined
+pSum = do
+  keyword "SUM"
+  inParenthesis cellRange
+  where
+    cellRange = do
+      x <- pCell
+      exactChar ':'
+      y <- pCell
+      return (Sum (Box x y))
 
 -- Now follows parsers for the sheet structure itself
 
