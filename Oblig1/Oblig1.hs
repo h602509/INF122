@@ -12,7 +12,6 @@ import Control.Applicative
 import Control.Monad.State
 import System.IO
 import System.Exit
-import Data.Time.Format.ISO8601 (yearFormat)
 import Data.Maybe (fromMaybe)
 import Distribution.Simple.Program.Ar (createArLibArchive)
 
@@ -81,6 +80,9 @@ instance Ranged CellRef where
           c <- [column (upperLeft ran) .. column (lowerRight ran)], 
           r <- [row (upperLeft ran) .. row (lowerRight ran)]]
 
+isValidCell :: Dimension CellRef -> CellRef -> Bool
+isValidCell dim (Cell c r) = c `elem` columns dim && r `elem` rows dim
+
 -- | A sample spreadsheet using Double for numeric type
 sheet1 :: Sheet Double CellRef
 sheet1 =
@@ -119,6 +121,25 @@ sheet2 =
           ]
     }
 
+sheet3 :: Sheet Integer CellRef
+sheet3 =
+  Sheet
+    { name = "Sheet3",
+      dimension = Dimension "ABCDE" [2,5],
+      content =
+        Map.fromList
+          [ ((Cell 'C' 2), Ref (Cell 'F' 4)),
+            ((Cell 'B' 5), Add (Constant 2)(Constant 4))
+          ]
+    }
+
+sheetEmpty =
+  Sheet
+    { name = "SheetEmpty",
+      dimension = Dimension "ABC" [1..2],
+      content = Map.empty
+    }
+
 -- Evaluate an expression within the context of a sheet.
 -- Return Nothing if the expression cannot be evaluated.
 evaluate :: (Num number, Ranged cell)
@@ -145,11 +166,12 @@ evaluate sheet (Sum ran) = if cycle then Nothing else sumRange sheet list
     list = map (cellLookup sheet) refs
     cycle = any hasCycle' refs
     hasCycle' cell = hasCycle sheet cell []
+    --validRange = map (isValidCell (dimension sheet)) refs
 
     -- Bruker do notasjonen til Maybe Monade for å håndtere Maybe
     sumRange sheet (x:xs) = do
-      expr <- x 
-      value <- evaluate sheet expr
+      expr <- x <|> Just (Constant 0)
+      value <- evaluate sheet expr -- <|> Just 0
       valueSum <- sumRange sheet xs
       return (value + valueSum)
     sumRange sheet [] = Just 0
@@ -158,13 +180,13 @@ evaluate sheet (Sum ran) = if cycle then Nothing else sumRange sheet list
 evaluate sheet (Add x y) = do
   x' <- evaluate sheet x
   y' <- evaluate sheet y
-  return (x' + y') 
+  return (x' + y')
 
 -- Hvis uttrykket er multiplikasjon av to uttrykk skal vi rekursivt evaluere enhvert uttrykk og så multiplisere resultatene.
 evaluate sheet (Mul x y) = do
   x' <- evaluate sheet x
   y' <- evaluate sheet y
-  return (x' * y') 
+  return (x' * y')
 
 hasCycle :: (Ranged cell) => Sheet number cell -> cell -> [cell] -> Bool
 hasCycle sheet cell visited = if cycleFound 
